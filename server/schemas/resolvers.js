@@ -5,7 +5,7 @@ const { signToken } = require("../utils/auth");
 const resolvers = {
   Query: {
     // get a single user by either their id or their username
-    async getSingleUser(_, { userId, username }) {
+    getSingleUser: async (_, { userId, username }) => {
       const foundUser = await User.findOne({
         $or: [{ _id: userId }, { username }],
       });
@@ -19,7 +19,7 @@ const resolvers = {
   },
   Mutation: {
     // create a user, sign a token, and send it back
-    async createUser(_, { input }) {
+    addUser: async (_, { input }) => {
       const user = await User.create(input);
 
       if (!user) {
@@ -31,25 +31,25 @@ const resolvers = {
     },
 
     // login a user, sign a token, and send it back
-    async login(_, { username, email, password }) {
+    loginUser: async (_, { username, email, password }) => {
       const user = await User.findOne({ $or: [{ username }, { email }] });
 
       if (!user) {
-        throw new Error("Can't find this user");
+        throw new AuthenticationError('No user with this information found!');
       }
 
       const correctPw = await user.isCorrectPassword(password);
 
       if (!correctPw) {
-        throw new Error("Wrong password!");
-      }
+       throw new AuthenticationError('Incorrect password!');
+     }
 
       const token = signToken(user);
       return { token, user };
     },
 
     // save a book to a user's `savedBooks` field by adding it to the set (to prevent duplicates)
-    async saveBook(_, { userId, bookInput }) {
+    saveBook: async (_, { userId, bookInput }) => {
       try {
         const updatedUser = await User.findOneAndUpdate(
           { _id: userId },
@@ -64,7 +64,7 @@ const resolvers = {
     },
 
     // remove a book from `savedBooks`
-    async deleteBook(_, { userId, bookId }) {
+    removeBook: async (_, { userId, bookId }) => {
       const updatedUser = await User.findOneAndUpdate(
         { _id: userId },
         { $pull: { savedBooks: { bookId } } },
