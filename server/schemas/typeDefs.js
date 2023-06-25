@@ -9,7 +9,7 @@ const typeDefs = gql`
     savedBooks: [Book]
   }
 
-  type Book {
+  type BookInput {
     bookId: String
     authors: [String]
     description: String
