@@ -6,9 +6,6 @@ import { SAVE_BOOK } from "../utils/mutations";
 
 import Auth from "../utils/auth";
 
-
-
-
 import { saveBookIds, getSavedBookIds } from "../utils/localStorage";
 
 const SearchBooks = () => {
@@ -21,7 +18,6 @@ const SearchBooks = () => {
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
 
   const [saveBook, { error }] = useMutation(SAVE_BOOK);
-
 
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
@@ -45,6 +41,7 @@ const SearchBooks = () => {
       }
 
       const { items } = await response.json();
+      console.log(items);
 
       const bookData = items.map((book) => ({
         bookId: book.id,
@@ -52,7 +49,10 @@ const SearchBooks = () => {
         title: book.volumeInfo.title,
         description: book.volumeInfo.description,
         image: book.volumeInfo.imageLinks?.thumbnail || "",
+        link: book.volumeInfo.previewLink,
       }));
+
+      console.log(bookData);
 
       setSearchedBooks(bookData);
       setSearchInput("");
@@ -73,12 +73,26 @@ const SearchBooks = () => {
       return false;
     }
 
-    try {
-      const response = await saveBook({variables: { _id: bookToSave.bookId } });
+    const decodedToken = Auth.getProfile();
+    console.log("decoded Token!!-->>>", decodedToken);
 
-      if (!response.ok) {
-        throw new Error("something went wrong!");
-      }
+    const usersId = decodedToken.data._id; // Assuming the user ID is stored in the 'id' field of the token payload
+    console.log(usersId);
+
+    try {
+      const response = await saveBook({
+        variables: {
+          userId: usersId,
+          bookData: {
+            bookId: bookToSave.bookId,
+            authors: bookToSave.authors,
+            title: bookToSave.title,
+            description: bookToSave.description,
+            image: bookToSave.image,
+            link: bookToSave.link,
+          },
+        },
+      });
 
       // if book successfully saves to user's account, save book id to state
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
@@ -138,9 +152,7 @@ const SearchBooks = () => {
                     <Card.Text>{book.description}</Card.Text>
                     {Auth.loggedIn() && (
                       <Button
-                        disabled={savedBookIds?.some(
-                          (savedBookId) => savedBookId === book.bookId
-                        )}
+                        disabled={savedBookIds?.includes(book.bookId)}
                         className="btn-block btn-info"
                         onClick={() => handleSaveBook(book.bookId)}
                       >
